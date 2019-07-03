@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>历史任务</title>
+    <script src="js/vue.min.js"></script>
+    <script src="js/axios.min.js"></script>
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+
+    <style>
+        #top {
+            background: #303133;
+            padding: 5px;
+            overflow: hidden
+        }
+
+        .el-table th {
+            display: table-cell !important;
+        }
+    </style>
+
+</head>
+<body>
+<div id="historyHttpJob">
+
+    <div id="top">
+        <el-input type="search" v-model="search" placeholder="任务名称或任务组名称" style="width: auto;"></el-input>
+        <el-button type="text" @click="searchHistoryJobs" style="color:white;margin-right:20px">查询</el-button>
+        <el-button type="text" style="color:white">
+            <a href="httpJobLog.html" target="_self" style="color:#fff;text-underline: none;">执行记录</a>
+        </el-button>
+    </div>
+
+    <div style="margin-top:10px">
+        <el-table ref="dataTable" :data="tableData" style="width:100%" border>
+            <el-table-column prop="jobName" label="任务名称" sortable width="120"></el-table-column>
+            <el-table-column prop="jobGroup" label="任务所在组" sortable width="120"></el-table-column>
+            <el-table-column prop="description" label="任务描述" sortable width="300"></el-table-column>
+            <el-table-column prop="requestType" label="请求类型" sortable width="120"></el-table-column>
+            <el-table-column prop="httpUrl" label="请求URL" sortable width="500"></el-table-column>
+            <el-table-column prop="httpParams" label="请求参数" sortable width="400"></el-table-column>
+            <el-table-column prop="createTime" label="创建时间" sortable width="180"></el-table-column>
+            <el-table-column label="操作" width="160"><template scope="scope">
+                    <el-button size="small" type="primary">
+                        <a :href="`./httpJobLog.html?jobName=${encodeURI(scope.row.jobName)}&jobGroup=${encodeURI(scope.row.jobGroup)}`"
+                           target="_self">执行记录</a>
+                    </el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+
+        <div align="center">
+            <el-pagination
+                    @size-change="pageSizeChange"
+                    @current-change="pageNumChange"
+                    :current-page="pageNum"
+                    :page-sizes="[10, 20, 30, 40]"
+                    :page-size="pageSize"
+                    layout="total, sizes, prev, pager, next, jumper"
+                    :total="totalCount">
+            </el-pagination>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    var vue = new Vue({
+        el: "#historyHttpJob",
+        data: {
+            tableData: [],
+            pageNum: 1,
+            pageSize: 10,
+            totalCount: 100,
+            search: ''
+        },
+
+        methods: {
+
+            //从服务器读取数据
+            loadData: function (pageNum, pageSize, search) {
+                axios({
+                    url: 'quartz/httpJob/historyJobs',
+                    method: 'get',
+                    params: {
+                        pageNum: pageNum,
+                        pageSize: pageSize,
+                        searchParam: search ? search : ''
+                    }
+                }).then((res) => {
+                    this.tableData = res.data.data.resultList;
+                    this.totalCount = res.data.data.totalCount;
+                }).catch((error) => {
+                    console.log(error);
+                });
+            },
+
+            //搜索
+            searchHistoryJobs: function () {
+                this.loadData(this.pageNum, this.pagesize, this.search);
+            },
+
+            //每页显示数据量变更
+            pageSizeChange: function (val) {
+                this.pageSize = val;
+                this.loadData(this.pageNum, this.pageSize, this.search);
+            },
+
+            //页码变更
+            pageNumChange: function (val) {
+                this.pageNum = val;
+                this.loadData(this.pageNum, this.pageSize, this.search);
+            },
+
+        },
+    });
+
+    //载入数据
+    vue.loadData(vue.currentPage, vue.pagesize);
+</script>
+
+</body>
+</html>

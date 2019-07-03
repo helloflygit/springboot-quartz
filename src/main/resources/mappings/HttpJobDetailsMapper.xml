@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.quartz.mapper.HttpJobDetailsMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.quartz.entity.HttpJobDetails">
+        <id column="ID" jdbcType="INTEGER" property="id"/>
+        <result column="JOB_NAME" jdbcType="VARCHAR" property="jobName"/>
+        <result column="JOB_GROUP" jdbcType="VARCHAR" property="jobGroup"/>
+        <result column="DESCRIPTION" jdbcType="VARCHAR" property="description"/>
+        <result column="REQUEST_TYPE" jdbcType="VARCHAR" property="requestType"/>
+        <result column="HTTP_URL" jdbcType="VARCHAR" property="httpUrl"/>
+        <result column="HTTP_PARAMS" jdbcType="VARCHAR" property="httpParams"/>
+        <result column="CREATE_TIME" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="UPDATE_TIME" jdbcType="TIMESTAMP" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+      ID,JOB_NAME,JOB_GROUP,DESCRIPTION,REQUEST_TYPE,HTTP_URL,HTTP_PARAMS,CREATE_TIME,UPDATE_TIME
+    </sql>
+
+    <select id="selectByJobNameAndJobGroup" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List" />
+        from HTTPJOB_DETAILS
+        where JOB_NAME = #{jobName} and JOB_GROUP = #{jobGroup}
+    </select>
+
+    <insert id="insertSelective" parameterType="com.example.quartz.entity.HttpJobDetails">
+        insert into HTTPJOB_DETAILS
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="jobName != null">
+                JOB_NAME,
+            </if>
+            <if test="jobGroup != null">
+                JOB_GROUP,
+            </if>
+            <if test="description != null">
+                DESCRIPTION,
+            </if>
+            <if test="requestType != null">
+                REQUEST_TYPE,
+            </if>
+            <if test="httpUrl != null">
+                HTTP_URL,
+            </if>
+            <if test="httpParams != null">
+                HTTP_PARAMS,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="jobName != null">
+                #{jobName,jdbcType=VARCHAR},
+            </if>
+            <if test="jobGroup != null">
+                #{jobGroup,jdbcType=VARCHAR},
+            </if>
+            <if test="description != null">
+                #{description,jdbcType=VARCHAR},
+            </if>
+            <if test="requestType != null">
+                #{requestType,jdbcType=VARCHAR},
+            </if>
+            <if test="httpUrl != null">
+                #{httpUrl,jdbcType=VARCHAR},
+            </if>
+            <if test="httpParams != null">
+                #{httpParams,jdbcType=VARCHAR},
+            </if>
+        </trim>
+    </insert>
+
+    <resultMap id="HttpJobDetailMap" type="com.example.quartz.entity.vo.HttpJobDetailVO">
+        <result column="JOB_NAME" jdbcType="VARCHAR" property="jobName"/>
+        <result column="JOB_GROUP" jdbcType="VARCHAR" property="jobGroup"/>
+        <result column="DESCRIPTION" jdbcType="VARCHAR" property="description"/>
+        <result column="REQUEST_TYPE" jdbcType="VARCHAR" property="requestType"/>
+        <result column="HTTP_URL" jdbcType="VARCHAR" property="httpUrl"/>
+        <result column="HTTP_PARAMS" jdbcType="VARCHAR" property="httpParams"/>
+        <result column="CREATE_TIME" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="CRON_EXPRESSION" jdbcType="VARCHAR" property="cronExpression"/>
+    </resultMap>
+
+    <select id="selectHttpJobs" resultMap="HttpJobDetailMap">
+        SELECT
+        t.JOB_NAME,
+        t.JOB_GROUP,
+        hd.DESCRIPTION,
+        hd.REQUEST_TYPE,
+        hd.HTTP_URL,
+        hd.HTTP_PARAMS,
+        hd.CREATE_TIME,
+        ct.CRON_EXPRESSION
+        FROM
+        QRTZ_TRIGGERS t
+        LEFT JOIN QRTZ_CRON_TRIGGERS ct ON ( t.TRIGGER_NAME = ct.TRIGGER_NAME AND t.TRIGGER_GROUP = ct.TRIGGER_GROUP )
+        LEFT JOIN HTTPJOB_DETAILS hd ON ( t.JOB_NAME = hd.JOB_NAME AND t.JOB_GROUP = hd.JOB_GROUP )
+        WHERE
+        1=1
+        <if test="searchParam != null and searchParam != ''">
+            AND ( t.JOB_NAME LIKE concat('%',#{searchParam},'%') OR t.JOB_GROUP LIKE concat('%',#{searchParam},'%') )
+        </if>
+        ORDER BY hd.ID DESC
+        <if test="beginIndex != null and pageSize!=null">
+            limit #{beginIndex},#{pageSize}
+        </if>
+    </select>
+
+    <select id="selectHttpJobsCount" resultType="java.lang.Integer">
+        SELECT
+        COUNT(1)
+        FROM
+        QRTZ_TRIGGERS t
+        LEFT JOIN QRTZ_CRON_TRIGGERS ct ON ( t.TRIGGER_NAME = ct.TRIGGER_NAME AND t.TRIGGER_GROUP = ct.TRIGGER_GROUP )
+        LEFT JOIN HTTPJOB_DETAILS hd ON ( t.JOB_NAME = hd.JOB_NAME AND t.JOB_GROUP = hd.JOB_GROUP )
+        WHERE
+        1=1
+        <if test="searchParam != null and searchParam != ''">
+            AND ( t.JOB_NAME LIKE concat('%',#{searchParam},'%') OR t.JOB_GROUP LIKE concat('%',#{searchParam},'%') )
+        </if>
+    </select>
+
+    <select id="selectHistoryHttpJobs" resultMap="HttpJobDetailMap">
+        SELECT
+        hd.JOB_NAME,
+        hd.JOB_GROUP,
+        hd.DESCRIPTION,
+        hd.REQUEST_TYPE,
+        hd.HTTP_URL,
+        hd.HTTP_PARAMS,
+        hd.CREATE_TIME
+        FROM
+        HTTPJOB_DETAILS hd
+        LEFT JOIN QRTZ_TRIGGERS qt ON ( hd.JOB_NAME = qt.JOB_NAME AND hd.JOB_GROUP = qt.JOB_GROUP )
+        WHERE
+        (qt.JOB_NAME IS NULL AND qt.JOB_GROUP IS NULL)
+        <if test="searchParam != null and searchParam != ''">
+            AND ( hd.JOB_NAME LIKE concat('%',#{searchParam},'%') OR hd.JOB_GROUP LIKE concat('%',#{searchParam},'%') )
+        </if>
+        ORDER BY hd.ID DESC
+        <if test="beginIndex != null and pageSize!=null">
+            limit #{beginIndex},#{pageSize}
+        </if>
+    </select>
+
+    <select id="selectHistoryHttpJobsCount" resultType="java.lang.Integer">
+        SELECT
+        COUNT(1)
+        FROM
+        HTTPJOB_DETAILS hd
+        LEFT JOIN QRTZ_TRIGGERS qt ON ( hd.JOB_NAME = qt.JOB_NAME AND hd.JOB_GROUP = qt.JOB_GROUP )
+        WHERE
+        (qt.JOB_NAME IS NULL AND qt.JOB_GROUP IS NULL)
+        <if test="searchParam != null and searchParam != ''">
+            AND ( hd.JOB_NAME LIKE concat('%',#{searchParam},'%') OR hd.JOB_GROUP LIKE concat('%',#{searchParam},'%') )
+        </if>
+    </select>
+
+</mapper>

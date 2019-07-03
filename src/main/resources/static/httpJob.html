@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>定时任务管理</title>
+    <script src="js/vue.min.js"></script>
+    <script src="js/axios.min.js"></script>
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+
+    <style>
+        #top {
+            background: #303133;
+            padding: 5px;
+            overflow: hidden
+        }
+
+        .el-dialog__title {
+            line-height: 24px;
+            font-size: 20px;
+            color: #303133;
+            margin-left: 50px;
+            font-weight: bold;
+        }
+
+        .el-dialog {
+            position: relative;
+            margin: 0 auto 50px;
+            border-radius: 2px;
+            -webkit-box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
+            box-sizing: border-box;
+            width: 600px;
+        }
+
+        .el-table th {
+            display: table-cell !important;
+        }
+
+    </style>
+
+</head>
+<body>
+<div id="httpJob">
+
+    <div id="top">
+        <el-button type="primary" size="small" round @click="addJob(true)">添加任务</el-button>
+        <el-input type="search" v-model="search" placeholder="任务名称或任务组名称"
+                  style="width: auto; margin-left:20px"></el-input>
+        <el-button type="text" size="medium" @click="searchJob" style="margin-right:20px">查询</el-button>
+        <el-button type="text" style="color:white">
+            <a href="httpJobLog.html" target="_self" style="color:#fff;text-underline: none;">执行记录</a>
+        </el-button>
+        <el-button type="text" style="color:white;margin-right:100px">
+            <a href="historyHttpJob.html" target="_blank" style="color:#fff;text-underline: none;">历史任务</a>
+        </el-button>
+    </div>
+
+    <div style="margin-top:10px">
+        <el-table ref="dataTable" :data="tableData" style="width:100%" border>
+            <el-table-column prop="jobName" label="任务名称" sortable width="120"></el-table-column>
+            <el-table-column prop="jobGroup" label="任务所在组" sortable width="120"></el-table-column>
+            <el-table-column prop="jobStatusInfo" label="任务状态" sortable width="120">
+                <template scope="scope">
+                    <span v-if="scope.row.jobStatusInfo == 'NORMAL'" style="font-weight:bold; color: green">{{scope.row.jobStatusInfo}}</span>
+                    <span v-else style="font-weight:bold; color: red">{{scope.row.jobStatusInfo}}</span>
+                </template>
+            </el-table-column>
+            <el-table-column prop="description" label="任务描述" sortable width="120"></el-table-column>
+            <el-table-column prop="requestType" label="请求类型" sortable width="120"></el-table-column>
+            <el-table-column prop="httpUrl" label="请求URL" sortable width="480"></el-table-column>
+            <el-table-column prop="httpParams" label="请求参数" sortable  width="300"></el-table-column>
+            <el-table-column prop="createTime" label="创建时间" sortable width="160"></el-table-column>
+            <el-table-column prop="cronExpression" label="Cron表达式" sortable width="170"></el-table-column>
+            <el-table-column prop="nextFireTime" label="下次运行时间" sortable width="170"></el-table-column>
+
+            <el-table-column label="操作" width="400">
+                <template scope="scope">
+                    <el-button size="small" type="primary"><a :href="`./httpJobLog.html?jobName=${encodeURI(scope.row.jobName)}&jobGroup=${encodeURI(scope.row.jobGroup)}`"
+                            target="_self">执行记录</a>
+                    </el-button>
+                    <el-button size="small" type="warning" @click="pauseJob(scope.$index, scope.row)">暂停</el-button>
+                    <el-button size="small" type="info" @click="resumeJob(scope.$index, scope.row)">恢复</el-button>
+                    <el-button size="small" type="danger" @click="deleteJob(scope.$index, scope.row)">删除</el-button>
+                    <el-button size="small" type="success" @click="updateJob(scope.$index, scope.row, true)">修改
+                    </el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+
+        <div align="center">
+            <el-pagination
+                    @size-change="pageSizeChange"
+                    @current-change="pageNumChange"
+                    :current-page="pageNum"
+                    :page-sizes="[10, 20, 30, 40]"
+                    :page-size="pageSize"
+                    layout="total, sizes, prev, pager, next, jumper"
+                    :total="totalCount">
+            </el-pagination>
+        </div>
+    </div>
+
+    <el-dialog title="添加任务" :visible.syn="addFormVisible" @close='addJob(false)'>
+        <el-form :model="addForm">
+            <el-form-item label="任务名称" label-width="120px" style="width:90%">
+                <el-input v-model="addForm.jobName" placeholder="填写任务名称" auto-complete="off"></el-input>
+            </el-form-item>
+            <el-form-item label="任务分组" label-width="120px" style="width:90%">
+                <el-input v-model="addForm.jobGroup" placeholder="填写项目名称" auto-complete="off"></el-input>
+            </el-form-item>
+            <el-form-item label="任务描述" label-width="120px" style="width:90%">
+                <el-input v-model="addForm.description" placeholder="填写任务描述" auto-complete="off"></el-input>
+            </el-form-item>
+            <el-form-item label="请求类型" label-width="120px" style="width:60%">
+                <el-select v-model="addForm.requestType" placeholder="请选择请求类型">
+                    <el-option label="GET" value="GET"></el-option>
+                    <el-option label="POST_JSON" value="POST_JSON"></el-option>
+                    <el-option label="POST_FORM" value="POST_FORM"></el-option>
+                </el-select>
+            </el-form-item>
+            <el-form-item label="请求URL" label-width="120px" style="width:90%">
+                <el-input v-model="addForm.url" placeholder="填写请求url" auto-complete="off"></el-input>
+            </el-form-item>
+            <el-form-item label="请求参数" label-width="120px" style="width:90%">
+                <el-input v-model="addForm.params" placeholder="参数组装为json格式" auto-complete="off"></el-input>
+            </el-form-item>
+            <el-form-item label="Cron表达式" label-width="120px" style="width:60%">
+                <el-input v-model="addForm.cronExpression" placeholder="填写正确的cron表达式" auto-complete="off"></el-input>
+            </el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer" style="text-align: center">
+            <el-button @click="addJob(false)">取 消</el-button>
+            <el-button type="primary" @click="add">确 定</el-button>
+        </div>
+    </el-dialog>
+
+    <el-dialog title="修改任务" :visible.syn="updateFormVisible" @close="updateFormVisible = false">
+        <el-form :model="updateForm">
+            <el-form-item label="Cron表达式" label-width="120px" style="width:70%">
+                <el-input v-model="updateForm.cronExpression" auto-complete="off"></el-input>
+            </el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+            <el-button @click="updateFormVisible = false">取 消</el-button>
+            <el-button type="primary" @click="update">确 定</el-button>
+        </div>
+    </el-dialog>
+
+</div>
+
+<script>
+    var vue = new Vue({
+        el: "#httpJob",
+        data: {
+            tableData: [],
+            pageNum: 1,
+            pageSize: 10,
+            totalCount: 100,
+            addFormVisible: false,
+            updateFormVisible: false,
+            addForm: {
+                jobName: '',
+                jobGroup: '',
+                description: '',
+                requestType: '',
+                url: '',
+                params: '',
+                cronExpression: '',
+            },
+            updateForm: {
+                jobName: '',
+                jobGroup: '',
+                cronExpression: '',
+            },
+            search: ''
+        },
+
+        methods: {
+
+            //从服务器读取数据
+            loadData: function (pageNum, pageSize, search) {
+                axios({
+                    url: 'quartz/httpJob/jobs',
+                    method: 'get',
+                    params: {
+                        pageNum: pageNum,
+                        pageSize: pageSize,
+                        searchParam: search ? search : ''
+                    }
+                }).then((res) => {
+                    this.tableData = res.data.data.resultList;
+                    this.totalCount = res.data.data.totalCount;
+                }).catch((error) => {
+                    console.log(error);
+                });
+            },
+
+            //搜索
+            searchJob: function () {
+                this.loadData(this.pageNum, this.pagesize, this.search);
+            },
+
+            //添加任务-弹出(隐藏)对话框
+            addJob: function (flag) {
+                this.addFormVisible = flag;
+            },
+
+            //添加任务
+            add: function () {
+                axios({
+                    url: 'quartz/httpJob/add',
+                    method: 'post',
+                    data: {
+                        jobName: this.addForm.jobName,
+                        jobGroup: this.addForm.jobGroup,
+                        description: this.addForm.description,
+                        requestType: this.addForm.requestType,
+                        url: this.addForm.url,
+                        params: this.addForm.params,
+                        cronExpression: this.addForm.cronExpression
+                    }
+                }).then((res) => {
+                    if (res.data.status == 0) {
+                        this.$message({
+                            type: 'success',
+                            message: res.data.message
+                        });
+                        this.loadData(this.pageNum, this.pagesize, this.search);
+                        this.addFormVisible = false;
+                    } else {
+                        this.$message({
+                            type: 'warning',
+                            message: res.data.message
+                        })
+                    }
+                }).catch((error) => {
+                    console.log(error);
+                });
+            },
+
+            //更新任务-弹出(隐藏)对话框
+            updateJob: function (index, row, flag) {
+                this.updateFormVisible = flag;
+                this.updateForm.jobName = row.jobName;
+                this.updateForm.jobGroup = row.jobGroup;
+                this.updateForm.cronExpression = row.cronExpression;
+            },
+
+            //更新任务
+            update: function () {
+                axios({
+                    url: 'quartz/job/update',
+                    method: 'post',
+                    params: {
+                        jobName: this.updateForm.jobName,
+                        jobGroup: this.updateForm.jobGroup,
+                        cronExpression: this.updateForm.cronExpression
+                    }
+                }).then((res) => {
+                    if (res.data.status == 0) {
+                        this.$message({
+                            type: 'success',
+                            message: res.data.message
+                        });
+                        this.loadData(this.pageNum, this.pagesize, this.search);
+                        this.updateFormVisible = false;
+                    } else {
+                        this.$message({
+                            type: 'warning',
+                            message: res.data.message
+                        })
+                    }
+                }).catch((error) => {
+                    console.log(error);
+                });
+            },
+
+            //暂停任务
+            pauseJob: function (index, row) {
+                axios({
+                    url: 'quartz/job/pause',
+                    method: 'post',
+                    params: {
+                        jobName: row.jobName,
+                        jobGroup: row.jobGroup
+                    }
+                }).then((res) => {
+                    if (res.data.status == 0) {
+                        this.$message({
+                            type: 'success',
+                            message: res.data.message
+                        });
+                        this.loadData(this.currentPage, this.pagesize, this.search);
+                        this.addFormVisible = false;
+                    } else {
+                        this.$message({
+                            type: 'warning',
+                            message: res.data.message
+                        })
+                    }
+                }).catch((error) => {
+                    console.log(error);
+                });
+            },
+
+            //恢复任务
+            resumeJob: function (index, row) {
+                axios({
+                    url: 'quartz/job/resume',
+                    method: 'post',
+                    params: {
+                        jobName: row.jobName,
+                        jobGroup: row.jobGroup
+                    }
+                }).then((res) => {
+                    if (res.data.status == 0) {
+                        this.$message({
+                            type: 'success',
+                            message: res.data.message
+                        });
+                        this.loadData(this.currentPage, this.pagesize, this.search);
+                        this.addFormVisible = false;
+                    } else {
+                        this.$message({
+                            type: 'warning',
+                            message: res.data.message
+                        })
+                    }
+                }).catch((error) => {
+                    console.log(error);
+                });
+            },
+
+            //删除任务
+            deleteJob: function (index, row) {
+                this.$confirm('此操作将永久删除该任务, 是否继续?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    axios({
+                        url: 'quartz/job/delete',
+                        method: 'post',
+                        params: {
+                            jobName: row.jobName,
+                            jobGroup: row.jobGroup
+                        }
+                    }).then((res) => {
+                        if (res.data.status == 0) {
+                            this.$message({
+                                type: 'success',
+                                message: res.data.message
+                            });
+                            this.loadData(this.currentPage, this.pagesize, this.search);
+                            this.addFormVisible = false;
+                        } else {
+                            this.$message({
+                                type: 'warning',
+                                message: res.data.message
+                            })
+                        }
+                    }).catch((error) => {
+                        console.log(error);
+                    });
+                }).catch(() => {
+                    this.$message({
+                        type: 'info',
+                        message: '已取消删除'
+                    });
+                });
+            },
+
+            //每页显示数据量变更
+            pageSizeChange: function (val) {
+                this.pageSize = val;
+                this.loadData(this.pageNum, this.pageSize, this.search);
+            },
+
+            //页码变更
+            pageNumChange: function (val) {
+                this.pageNum = val;
+                this.loadData(this.pageNum, this.pageSize, this.search);
+            },
+
+        }
+    });
+
+    //载入数据
+    vue.loadData(vue.pageNum, vue.pageSize);
+</script>
+
+</body>
+</html>
