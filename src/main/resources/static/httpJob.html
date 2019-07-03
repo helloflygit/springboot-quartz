@@ -198,7 +198,7 @@
 
             //搜索
             searchJob: function () {
-                this.loadData(this.pageNum, this.pagesize, this.search);
+                this.loadData(this.pageNum, this.pageSize, this.search);
             },
 
             //添加任务-弹出(隐藏)对话框
@@ -226,7 +226,7 @@
                             type: 'success',
                             message: res.data.message
                         });
-                        this.loadData(this.pageNum, this.pagesize, this.search);
+                        this.loadData(this.pageNum, this.pageSize, this.search);
                         this.addFormVisible = false;
                     } else {
                         this.$message({
@@ -263,7 +263,7 @@
                             type: 'success',
                             message: res.data.message
                         });
-                        this.loadData(this.pageNum, this.pagesize, this.search);
+                        this.loadData(this.pageNum, this.pageSize, this.search);
                         this.updateFormVisible = false;
                     } else {
                         this.$message({
@@ -291,7 +291,7 @@
                             type: 'success',
                             message: res.data.message
                         });
-                        this.loadData(this.currentPage, this.pagesize, this.search);
+                        this.loadData(this.pageNum, this.pageSize, this.search);
                         this.addFormVisible = false;
                     } else {
                         this.$message({
@@ -319,7 +319,7 @@
                             type: 'success',
                             message: res.data.message
                         });
-                        this.loadData(this.currentPage, this.pagesize, this.search);
+                        this.loadData(this.pageNum, this.pageSize, this.search);
                         this.addFormVisible = false;
                     } else {
                         this.$message({
@@ -352,7 +352,7 @@
                                 type: 'success',
                                 message: res.data.message
                             });
-                            this.loadData(this.currentPage, this.pagesize, this.search);
+                            this.loadData(this.pageNum, this.pageSize, this.search);
                             this.addFormVisible = false;
                         } else {
                             this.$message({

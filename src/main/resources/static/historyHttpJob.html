@@ -98,7 +98,7 @@
 
             //搜索
             searchHistoryJobs: function () {
-                this.loadData(this.pageNum, this.pagesize, this.search);
+                this.loadData(this.pageNum, this.pageSize, this.search);
             },
 
             //每页显示数据量变更
@@ -117,7 +117,7 @@
     });
 
     //载入数据
-    vue.loadData(vue.currentPage, vue.pagesize);
+    vue.loadData(vue.pageNum, vue.pageSize);
 </script>
 
 </body>
