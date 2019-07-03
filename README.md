@@ -23,3 +23,11 @@
 `2、调用接口添加http定时请求任务时，params(请求参数)选填，若填写，必须组装为合法的json字符串格式。`  
   
 ### demo  
+  HTTP请求任务管理  
+![image](https://github.com/helloflygit/springboot-quartz/raw/master/demo-images/httpjob-manage.png)  
+
+  HTTP请求任务添加  
+![image](https://github.com/helloflygit/springboot-quartz/raw/master/demo-images/httpjob-add.png)  
+
+  HTTP请求任务执行记录  
+![image](https://github.com/helloflygit/springboot-quartz/raw/master/demo-images/httpjob-logs.png)  
