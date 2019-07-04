@@ -1,7 +1,5 @@
 package com.example.quartz.config.response;
 
-import org.apache.commons.lang3.StringUtils;
-
 import java.io.Serializable;
 
 /**
