@@ -49,7 +49,7 @@ public class JobUtil {
         try {
             jobStatusInfo = scheduler.getTriggerState(triggerKey).name();
         } catch (SchedulerException e) {
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
         return jobStatusInfo;
     }
