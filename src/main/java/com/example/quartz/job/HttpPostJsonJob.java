@@ -20,7 +20,7 @@ public class HttpPostJsonJob implements Job {
     private HttpJobLogsMapper httpJobLogsMapper;
 
     @Override
-    public void execute(JobExecutionContext jobExecutionContext) throws JobExecutionException {
+    public void execute(JobExecutionContext jobExecutionContext) {
         JobDetail jobDetail = jobExecutionContext.getJobDetail();
         String jobName = jobDetail.getKey().getName();
         String jobGroup = jobDetail.getKey().getGroup();
